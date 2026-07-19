@@ -3,6 +3,7 @@
 import { isTextUIPart, type UIMessage } from "ai";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import type { Message } from "@/lib/generated/prisma/client";
 
 /** Extracts plain text from an AI SDK `UIMessage` by joining all text parts. */
 function getMessageText(message: UIMessage) {
@@ -39,11 +40,14 @@ export async function loadChatMessages(
     orderBy: { createdAt: "asc" },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    role: row.role === "ASSISTANT" ? "assistant" : "user",
-    parts: toUIMessageParts(row.parts, row.content),
-  }));
+  return rows.map((row: Message) => ({
+  id: row.id,
+  role:
+  row.role === "ASSISTANT"
+    ? "assistant"
+    : "user",
+  parts: toUIMessageParts(row.parts, row.content),
+}));
 }
 
 type SaveChatMessagesOptions = {
@@ -65,28 +69,34 @@ export async function saveChatMessages(
   const { updateTitle = true } = options;
 
   for (const message of messages) {
-    if (message.role === "system") continue;
+  if (message.role === "system") continue;
 
-    const content = getMessageText(message);
-    const role = message.role === "assistant" ? "ASSISTANT" : "USER";
+  const content =
+    getMessageText(message) ||
+    JSON.stringify(message.parts);
 
-    await prisma.message.upsert({
-      where: { id: message.id },
-      create: {
-        id: message.id,
-        conversationId,
-        role,
-        status: "COMPLETE",
-        content,
-        parts: message.parts as Prisma.InputJsonValue,
-      },
-      update: {
-        content,
-        parts: message.parts as Prisma.InputJsonValue,
-        status: "COMPLETE",
-      },
-    });
-  }
+  const role =
+  message.role === "assistant"
+    ? "ASSISTANT"
+    : "USER";
+
+  await prisma.message.upsert({
+    where: { id: message.id },
+    create: {
+      id: message.id,
+      conversationId,
+      role,
+      status: "COMPLETE",
+      content,
+      parts: message.parts as Prisma.InputJsonValue,
+    },
+    update: {
+      content,
+      parts: message.parts as Prisma.InputJsonValue,
+      status: "COMPLETE",
+    },
+  });
+}
 
   const conversation = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },

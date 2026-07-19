@@ -23,6 +23,26 @@ function getMessageText(message: UIMessage) {
     .join("");
 }
 
+function hasToolPart(message: UIMessage) {
+  return message.parts.some((part) =>
+    part.type.startsWith("tool-")
+  );
+}
+
+function ToolStatus({ message }: { message: UIMessage }) {
+  const toolPart = message.parts.find((part) =>
+    part.type.startsWith("tool-")
+  );
+
+  if (!toolPart) return null;
+
+  return (
+    <div className="text-sm text-muted-foreground">
+      🔎 Searching web...
+    </div>
+  );
+}
+
 type ChatMessagesProps = {
   messages: UIMessage[];
   status: ChatStatus;
@@ -41,7 +61,13 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         {messages.map((message) => (
           <Message key={message.id} from={message.role}>
             <MessageContent>
-              <MessageResponse>{getMessageText(message)}</MessageResponse>
+              {hasToolPart(message) && (
+  <ToolStatus message={message} />
+)}
+
+<MessageResponse>
+  {getMessageText(message)}
+</MessageResponse>
             </MessageContent>
           </Message>
         ))}
