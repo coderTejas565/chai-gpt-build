@@ -164,11 +164,20 @@ function ChatItem({
     isActive ? conversation.id : undefined
   );
 
-  /** Prompts the user to rename the conversation and persists the new title. */
+  const mainBranch = conversation.branches[0];
+
+  if (!mainBranch) {
+    return null;
+  }
+
   function handleRename() {
     const next = window.prompt("Rename chat", conversation.title);
     if (!next || next.trim() === conversation.title) return;
-    updateConversation.mutate({ id: conversation.id, title: next });
+
+    updateConversation.mutate({
+      id: conversation.id,
+      title: next,
+    });
   }
 
   return (
@@ -176,7 +185,11 @@ function ChatItem({
       <SidebarMenuButton
         isActive={isActive}
         tooltip={conversation.title}
-        render={<Link href={`/c/${conversation.id}`} />}
+        render={
+          <Link
+            href={`/c/${conversation.id}?branch=${mainBranch.id}`}
+          />
+        }
         className={cn(isActive && "font-medium")}
       >
         <span className="truncate">{conversation.title}</span>
@@ -194,11 +207,13 @@ function ChatItem({
           <MoreHorizontalIcon />
           <span className="sr-only">Chat actions</span>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent side="right" align="start">
           <DropdownMenuItem onClick={handleRename}>
             <PencilIcon />
             Rename
           </DropdownMenuItem>
+
           <DropdownMenuItem
             onClick={() =>
               updateConversation.mutate({
@@ -210,7 +225,9 @@ function ChatItem({
             {conversation.isPinned ? <PinOffIcon /> : <PinIcon />}
             {conversation.isPinned ? "Unpin" : "Pin"}
           </DropdownMenuItem>
+
           <DropdownMenuSeparator />
+
           <DropdownMenuItem
             variant="destructive"
             onClick={() => deleteConversation.mutate(conversation.id)}

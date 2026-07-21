@@ -13,6 +13,11 @@ export type ConversationListItem = {
     lastMessageAt: Date;
     createdAt: Date;
     updatedAt: Date;
+
+    branches: {
+    id: string;
+    name: string;
+  }[];
 };
 
 
@@ -53,37 +58,69 @@ export async function getConversation(conversationId: string) {
  * Pinned conversations appear first, then sorted by most recent activity.
  */
 export async function listConversations(): Promise<ConversationListItem[]> {
-    const user = await requireUser();
+  const user = await requireUser();
 
-    return prisma.conversation.findMany({
-        where: { userId: user.id, isArchived: false },
-        orderBy: [{ isPinned: "desc" }, { lastMessageAt: "desc" }],
-        select: {
-            id: true,
-            title: true,
-            isPinned: true,
-            isArchived: true,
-            lastMessageAt: true,
-            createdAt: true,
-            updatedAt: true,
+  return prisma.conversation.findMany({
+    where: {
+      userId: user.id,
+      isArchived: false,
+    },
+    orderBy: [
+      { isPinned: "desc" },
+      { lastMessageAt: "desc" },
+    ],
+    select: {
+      id: true,
+      title: true,
+      isPinned: true,
+      isArchived: true,
+      lastMessageAt: true,
+      createdAt: true,
+      updatedAt: true,
+
+      branches: {
+        take: 1,
+        orderBy: {
+          createdAt: "asc",
         },
-    })
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 }
 
 /**
- * Creates a new conversation for the current user.
+ * Creates a new conversation with its default Main branch.
  *
  * @param title - Optional title; defaults to "New Chat".
  */
 export async function createConversation(title = "New Chat") {
     const user = await requireUser();
 
-    return prisma.conversation.create({
+    const conversation = await prisma.conversation.create({
         data: {
             userId: user.id,
             title: title.trim() || "New Chat",
+
+            branches: {
+                create: {
+                    name: "Main",
+                },
+            },
+        },
+
+        include: {
+            branches: true,
         },
     });
+
+    return {
+        conversationId: conversation.id,
+        branchId: conversation.branches[0].id,
+    };
 }
 
 /**

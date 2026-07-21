@@ -15,9 +15,21 @@ export async function startNewChat(){
     const conversation = await prisma.conversation.create({
         data:{
             userId:user.id,
-            title:"New Chat"
+            title:"New Chat",
+
+        branches:{
+            create:{
+                name: "Main"
+            }
+        }    
+        },
+        include: {
+            branches: true,
         }
     });
 
-    return conversation.id;
+    return {
+  conversationId: conversation.id,
+  branchId: conversation.branches[0].id
+};
 }

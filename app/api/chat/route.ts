@@ -23,26 +23,37 @@ import {
 export async function POST(req: Request) {
     await auth.protect();
 
-    const { message, id }: { message: UIMessage, id: string } = await req.json();
+    const {
+ message,
+ id: branchId
+}:{
+ message:UIMessage;
+ id:string;
+}=await req.json();
 
-    if (!message || !id) {
+    if (!message || !branchId) {
         return new Response("Missing message or conversation id", { status: 400 });
     }
 
     const user = await requireUser();
 
-    const conversation = await prisma.conversation.findFirst({
-        where: {
-            id,
-            userId: user.id
-        }
-    });
+    const branch = await prisma.branch.findFirst({
+ where:{
+   branchId,
+   conversation:{
+     userId:user.id
+   }
+ },
+ include:{
+   conversation:true
+ }
+});
 
-    if (!conversation) {
+    if (!branch) {
         return new Response("Conversation not found", { status: 404 });
     }
 
-    const previousMessages = await loadChatMessages(id);
+    const previousMessages = await loadChatMessages(branch.id);
 
     const alreadySaved = previousMessages.some(
         (storedMessage)=>storedMessage.id === message.id
@@ -51,14 +62,14 @@ export async function POST(req: Request) {
     const messages = alreadySaved ? previousMessages : [...previousMessages, message];
 
     if(!alreadySaved){
-        await saveChatMessages(id, [message]);
+        await saveChatMessages(branch.id, [message]);
     }
 
 const result = streamText({
-    model: getChatModel(conversation.model),
+    model: getChatModel(branch.conversation.model),
 
     system:
-      conversation.systemPrompt ??
+      branch.conversation.systemPrompt ??
       "You are ChaiGPT, a helpful assistant.",
 
     messages: await convertToModelMessages(messages),
@@ -79,7 +90,7 @@ const result = streamText({
            generateMessageId:createIdGenerator({prefix:"msg" , size:16}),
            onEnd:async({messages:finalMessages})=>{
             try {
-                await saveChatMessages(id , finalMessages , {updateTitle:false})
+                await saveChatMessages(branch.id , finalMessages , {updateTitle:false})
             } catch (error) {
                 console.error(error);
             }

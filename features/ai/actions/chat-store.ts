@@ -33,10 +33,10 @@ function toUIMessageParts(
  * @returns Messages ordered oldest to newest, ready for `useChat`.
  */
 export async function loadChatMessages(
-  conversationId: string
+  branchId: string
 ): Promise<UIMessage[]> {
   const rows = await prisma.message.findMany({
-    where: { conversationId },
+    where: { branchId },
     orderBy: { createdAt: "asc" },
   });
 
@@ -62,7 +62,7 @@ type SaveChatMessagesOptions = {
  * @param options.updateTitle - When true, auto-titles "New Chat" from the first user message.
  */
 export async function saveChatMessages(
-  conversationId: string,
+  branchId: string,
   messages: UIMessage[],
   options: SaveChatMessagesOptions = {}
 ) {
@@ -84,7 +84,7 @@ export async function saveChatMessages(
     where: { id: message.id },
     create: {
       id: message.id,
-      conversationId,
+      branchId,
       role,
       status: "COMPLETE",
       content,
@@ -98,22 +98,35 @@ export async function saveChatMessages(
   });
 }
 
-  const conversation = await prisma.conversation.findUniqueOrThrow({
-    where: { id: conversationId },
-    select: { title: true },
-  });
+  const branch = await prisma.branch.findUniqueOrThrow({
+  where:{
+    id:branchId
+  },
+  select:{
+    conversation:{
+      select:{
+        title:true,
+        id:true
+      }
+    }
+  }
+});
 
   const firstUser = messages.find((message) => message.role === "user");
   const firstUserText = firstUser ? getMessageText(firstUser).trim() : "";
 
   await prisma.conversation.update({
-    where: { id: conversationId },
-    data: {
-      lastMessageAt: new Date(),
-      title:
-        updateTitle && conversation.title === "New Chat" && firstUserText
-          ? firstUserText.slice(0, 48)
-          : conversation.title,
-    },
-  });
+ where:{
+   id:branch.conversation.id
+ },
+ data:{
+   lastMessageAt:new Date(),
+   title:
+     updateTitle &&
+     branch.conversation.title==="New Chat" &&
+     firstUserText
+       ? firstUserText.slice(0,48)
+       : branch.conversation.title
+ }
+});
 }
