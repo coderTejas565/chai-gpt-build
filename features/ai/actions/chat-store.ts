@@ -68,6 +68,8 @@ export async function saveChatMessages(
 ) {
   const { updateTitle = true } = options;
 
+  let parentMessageId: string | null = null;
+
   for (const message of messages) {
   if (message.role === "system") continue;
 
@@ -84,18 +86,23 @@ export async function saveChatMessages(
     where: { id: message.id },
     create: {
       id: message.id,
+      originalMessageId: message.id,
       branchId,
+      parentMessageId,
       role,
       status: "COMPLETE",
       content,
       parts: message.parts as Prisma.InputJsonValue,
     },
     update: {
+      parentMessageId,
       content,
       parts: message.parts as Prisma.InputJsonValue,
       status: "COMPLETE",
     },
   });
+
+  parentMessageId = message.id;
 }
 
   const branch = await prisma.branch.findUniqueOrThrow({

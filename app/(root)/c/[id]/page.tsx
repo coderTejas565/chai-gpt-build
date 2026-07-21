@@ -3,6 +3,7 @@ import { getConversation } from '@/features/conversation/actions/conversation-ac
 import { ConversationView } from '@/features/conversation/components/conversation-view';
 import { notFound } from 'next/navigation';
 import React from 'react'
+import { getBranch } from "@/features/branch/actions/get-branch";
 
 type ConversationPageProps = {
     params: Promise<{ id: string }>;
@@ -25,10 +26,10 @@ const page = async ({
     }
 
     try {
-        await getConversation(id);
-    } catch {
-        notFound();
-    }
+    await getBranch(id, branch);
+} catch {
+    notFound();
+}
 
     const initialMessages = await loadChatMessages(branch);
 

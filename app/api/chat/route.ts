@@ -38,19 +38,19 @@ export async function POST(req: Request) {
     const user = await requireUser();
 
     const branch = await prisma.branch.findFirst({
- where:{
-   branchId,
-   conversation:{
-     userId:user.id
-   }
- },
- include:{
-   conversation:true
- }
+  where:{
+    id: branchId,
+    conversation:{
+      userId:user.id
+    }
+  },
+  include:{
+    conversation:true
+  }
 });
 
     if (!branch) {
-        return new Response("Conversation not found", { status: 404 });
+        return new Response("Branch not found", { status:404 });
     }
 
     const previousMessages = await loadChatMessages(branch.id);

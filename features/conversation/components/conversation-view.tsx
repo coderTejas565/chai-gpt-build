@@ -95,9 +95,10 @@ const transport = useMemo(
                 <ChatEmpty />
             ) : (
                 <ChatMessages
-                    messages={messages}
-                    status={status}
-                />
+    messages={messages}
+    status={status}
+    branchId={branchId}
+/>
             )}
 
 

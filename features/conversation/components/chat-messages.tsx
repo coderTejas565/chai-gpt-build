@@ -3,10 +3,13 @@
 import { isTextUIPart, type UIMessage } from "ai";
 import type { ChatStatus } from "ai";
 
+import { createBranch } from "@/features/branch/actions/create-branch";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
 import {
   Conversation,
   ConversationContent,
-  ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import {
   Message,
@@ -46,12 +49,35 @@ function ToolStatus({ message }: { message: UIMessage }) {
 type ChatMessagesProps = {
   messages: UIMessage[];
   status: ChatStatus;
+  branchId: string;
 };
 
 /**
  * Renders the conversation message list with markdown responses and a loading indicator.
  */
-export function ChatMessages({ messages, status }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  status,
+  branchId,
+}: ChatMessagesProps) {
+  const router = useRouter();
+
+  async function handleBranch(messageId: string) {
+  try {
+    const result = await createBranch({
+      sourceBranchId: branchId,
+      fromMessageId: messageId,
+    });
+
+    router.push(
+      `/c/${result.conversationId}?branch=${result.branchId}`
+    );
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+
   const isWaiting =
     status === "submitted" && messages.at(-1)?.role === "user";
 
@@ -68,6 +94,16 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
 <MessageResponse>
   {getMessageText(message)}
 </MessageResponse>
+
+{message.role === "assistant" && (
+  <Button
+    size="sm"
+    variant="ghost"
+    onClick={() => handleBranch(message.id)}
+  >
+    Branch here
+  </Button>
+)}
             </MessageContent>
           </Message>
         ))}

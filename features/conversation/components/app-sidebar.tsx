@@ -186,10 +186,14 @@ function ChatItem({
         isActive={isActive}
         tooltip={conversation.title}
         render={
-          <Link
-            href={`/c/${conversation.id}?branch=${mainBranch.id}`}
-          />
-        }
+<Link
+href={
+conversation.branches[0]
+? `/c/${conversation.id}?branch=${conversation.branches[0].id}`
+: `/c/${conversation.id}`
+}
+/>
+}
         className={cn(isActive && "font-medium")}
       >
         <span className="truncate">{conversation.title}</span>

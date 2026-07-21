@@ -79,6 +79,8 @@ enum MessageStatus {
 model Message {
   id String @id @default(cuid())
 
+  originalMessageId String?
+
   branchId String
 
   parentMessageId String?

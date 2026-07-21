@@ -116,6 +116,7 @@ export type BranchScalarFieldEnum = (typeof BranchScalarFieldEnum)[keyof typeof 
 
 export const MessageScalarFieldEnum = {
   id: 'id',
+  originalMessageId: 'originalMessageId',
   branchId: 'branchId',
   parentMessageId: 'parentMessageId',
   role: 'role',
