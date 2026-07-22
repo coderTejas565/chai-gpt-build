@@ -24,16 +24,18 @@ export async function POST(req: Request) {
     await auth.protect();
 
     const {
- message,
- id: branchId
-}:{
- message:UIMessage;
- id:string;
-}=await req.json();
+  message,
+  id: branchId,
+  regenerate = false,
+}: {
+  message: UIMessage;
+  id: string;
+  regenerate?: boolean;
+} = await req.json();
 
-    if (!message || !branchId) {
-        return new Response("Missing message or conversation id", { status: 400 });
-    }
+    if (!branchId) {
+    return new Response("Missing branch id", { status: 400 });
+}
 
     const user = await requireUser();
 
@@ -53,17 +55,19 @@ export async function POST(req: Request) {
         return new Response("Branch not found", { status:404 });
     }
 
-    const previousMessages = await loadChatMessages(branch.id);
+    let messages = await loadChatMessages(branch.id);
 
-    const alreadySaved = previousMessages.some(
-        (storedMessage)=>storedMessage.id === message.id
-    )
+if (!regenerate) {
+    const alreadySaved = messages.some(
+        (storedMessage) => storedMessage.id === message.id
+    );
 
-    const messages = alreadySaved ? previousMessages : [...previousMessages, message];
+    if (!alreadySaved) {
+        messages = [...messages, message];
 
-    if(!alreadySaved){
         await saveChatMessages(branch.id, [message]);
     }
+}
 
 const result = streamText({
     model: getChatModel(branch.conversation.model),

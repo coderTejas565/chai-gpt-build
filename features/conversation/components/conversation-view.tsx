@@ -42,14 +42,15 @@ const transport = useMemo(
     new DefaultChatTransport({
       api: "/api/chat",
 
-      prepareSendMessagesRequest: ({ messages }) => ({
+      prepareSendMessagesRequest: ({ messages,body }) => ({
         body: {
           id: branchId,
           message: messages.at(-1)!,
+          regenerate: body?.shouldRegenerate ?? false,
         },
       }),
     }),
-  [branchId]
+  [branchId, shouldRegenerate]
 );
 
 
@@ -79,20 +80,22 @@ const transport = useMemo(
   if (hasRegenerated.current) return;
   hasRegenerated.current = true;
 
-  const lastUser = [...messages]
-    .reverse()
-    .find((message) => message.role === "user");
+  const lastMessage = messages.at(-1);
 
-  if (!lastUser) return;
+if (!lastMessage) return;
 
-  const text = lastUser.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
+if (lastMessage.role !== "user") return;
 
-  if (!text) return;
-
-  void sendMessage({ text });
+void sendMessage(
+  {
+    text: "",
+  },
+  {
+    body: {
+      regenerate: true,
+    },
+  }
+);
 
   router.replace(`/c/${conversationId}?branch=${branchId}`);
 }, [
