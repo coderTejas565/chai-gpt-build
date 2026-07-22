@@ -5,18 +5,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useConversations } from "../hooks/use-conversation";
 import { queryKeys } from "../utils/query-keys";
 import { toast } from "sonner";
 import { ChatEmpty } from "./chat-empty";
 import { ChatMessages } from "./chat-messages";
 import { ChatComposer } from "./chat-composer";
+import { BranchSwitcher } from "./branch-switcher";
+import { useRouter } from "next/navigation";
 
 type ConversationViewProps = {
     branchId: string;
     conversationId: string;
     initialMessages: UIMessage[];
+    shouldRegenerate: boolean;
 };
 
 /**
@@ -26,9 +29,12 @@ export const ConversationView = ({
     branchId,
     conversationId,
     initialMessages,
+    shouldRegenerate,
 }: ConversationViewProps) => {
 
     const queryClient = useQueryClient();
+    const router = useRouter();
+    const hasRegenerated = useRef(false);
     const { data: conversations } = useConversations();
 
 const transport = useMemo(
@@ -67,6 +73,38 @@ const transport = useMemo(
         },
     });
 
+    useEffect(() => {
+  if (!shouldRegenerate) return;
+
+  if (hasRegenerated.current) return;
+  hasRegenerated.current = true;
+
+  const lastUser = [...messages]
+    .reverse()
+    .find((message) => message.role === "user");
+
+  if (!lastUser) return;
+
+  const text = lastUser.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+
+  if (!text) return;
+
+  void sendMessage({ text });
+
+  router.replace(`/c/${conversationId}?branch=${branchId}`);
+}, [
+  shouldRegenerate,
+  messages,
+  sendMessage,
+  router,
+  conversationId,
+  branchId,
+]);
+
+
 
     const title =
         conversations?.find(
@@ -100,6 +138,11 @@ const transport = useMemo(
     branchId={branchId}
 />
             )}
+
+            <BranchSwitcher
+ conversationId={conversationId}
+ activeBranchId={branchId}
+/>
 
 
             <ChatComposer

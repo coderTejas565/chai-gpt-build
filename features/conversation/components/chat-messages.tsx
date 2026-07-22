@@ -3,9 +3,10 @@
 import { isTextUIPart, type UIMessage } from "ai";
 import type { ChatStatus } from "ai";
 
-import { createBranch } from "@/features/branch/actions/create-branch";
+import { regenerateResponse } from "@/features/branch/actions/regenerate-response";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 
 import {
   Conversation,
@@ -64,14 +65,14 @@ export function ChatMessages({
 
   async function handleBranch(messageId: string) {
   try {
-    const result = await createBranch({
-      sourceBranchId: branchId,
-      fromMessageId: messageId,
-    });
+    const result = await regenerateResponse({
+    sourceBranchId: branchId,
+    assistantMessageId: messageId,
+});
 
     router.push(
-      `/c/${result.conversationId}?branch=${result.branchId}`
-    );
+  `/c/${result.conversationId}?branch=${result.branchId}&regen=1`
+);
 
   } catch (error) {
     console.error(error);
@@ -81,32 +82,42 @@ export function ChatMessages({
   const isWaiting =
     status === "submitted" && messages.at(-1)?.role === "user";
 
+    const lastAssistantId = [...messages]
+  .reverse()
+  .find((message) => message.role === "assistant")?.id;
+
   return (
     <Conversation>
       <ConversationContent className="py-8">
-        {messages.map((message) => (
-          <Message key={message.id} from={message.role}>
-            <MessageContent>
-              {hasToolPart(message) && (
-  <ToolStatus message={message} />
-)}
+        {messages.map((message) => {
+  const isLastAssistant =
+    message.role === "assistant" &&
+    message.id === lastAssistantId;
 
-<MessageResponse>
-  {getMessageText(message)}
-</MessageResponse>
+  return (
+    <Message key={message.id} from={message.role}>
+      <MessageContent>
+        {hasToolPart(message) && (
+          <ToolStatus message={message} />
+        )}
 
-{message.role === "assistant" && (
-  <Button
-    size="sm"
-    variant="ghost"
-    onClick={() => handleBranch(message.id)}
-  >
-    Branch here
-  </Button>
-)}
-            </MessageContent>
-          </Message>
-        ))}
+        <MessageResponse>
+          {getMessageText(message)}
+        </MessageResponse>
+
+        {isLastAssistant && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => handleBranch(message.id)}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        )}
+      </MessageContent>
+    </Message>
+  );
+})}
 
         {isWaiting ? (
           <Message from="assistant">
